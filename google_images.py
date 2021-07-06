@@ -2,7 +2,7 @@
 
 # requires: selenium, chromium-driver, retry
 
-# run script: python google_images.py "tiger" 10
+# run script: python google_images.py 10 "tiger" "folder_tiger"
 
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
@@ -15,6 +15,7 @@ from retry import retry
 import argparse
 import logging
 import requests
+import os
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 logger = logging.getLogger()
@@ -26,10 +27,13 @@ css_load_more = ".mye4qd"
 selenium_exceptions = (sel_ex.ElementClickInterceptedException, sel_ex.ElementNotInteractableException, sel_ex.StaleElementReferenceException)
 
 @retry(exceptions=KeyError, tries=6, delay=0.1, backoff=2, logger=retry_logger)
-def download_image(url):
+def download_image(url, folder):
 	try:
 		response = requests.get(url, headers = {"User-Agent" : "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"})
-		filename = "googleImages/" + url.split("/")[-1]
+		if not os.path.isdir("dataset/" + folder + "/"):
+			os.mkdir("dataset/" + folder + "/")
+		filename = "dataset/" + folder + "/" + url.split("/")[-1]
+		filename = filename.split(".jpg")[0] + ".jpg"
 		with open(filename, "wb") as file:
 			file.write(response.content)
 	except OSError as exc:
@@ -63,7 +67,7 @@ def get_image_src(wd):
 def retry_click(el):
     el.click()
 
-def get_images(wd, start=0, n=20, out=None):
+def get_images(wd, start=0, n=20, folder="googleImages", out=None):
     thumbnails = []
     count = len(thumbnails)
     while count < n:
@@ -100,31 +104,33 @@ def get_images(wd, start=0, n=20, out=None):
                 if out:
                     print(src, file=out)
                     print(len(sources))
-                    download_image(src)
+                    download_image(src, folder)
                     out.flush()
         if len(sources) >= n:
             break
     return sources
 
-def google_image_search(wd, query, safe="off", n=20, opts='', out=None):
+def google_image_search(wd, query, folder="googleImages", safe="off", n=20, opts='', out=None):
     search_url_t = "https://www.google.com/search?safe={safe}&site=&tbm=isch&source=hp&q={q}&oq={q}&gs_l=img&tbs={opts}"
     search_url = search_url_t.format(q=urllib.parse.quote(query), opts=urllib.parse.quote(opts), safe=safe)
     wd.get(search_url)
-    sources = get_images(wd, n=n, out=out)
+    sources = get_images(wd, n=n, folder=folder, out=out)
     return sources
 
-def main():
-    parser = argparse.ArgumentParser(description='Fetch image URLs from Google Image Search.')
-    parser.add_argument('--safe', type=str, default="off", help='safe search [off|active|images]')
-    parser.add_argument('--opts', type=str, default="", help='search options, e.g. isz:lt,islt:svga,itp:photo,ic:color,ift:jpg')
-    parser.add_argument('query', type=str, help='image search query')
-    parser.add_argument('n', type=int, default=20, help='number of images (approx)')
-    args = parser.parse_args()
+def main(query, folder, n):
+    #parser = argparse.ArgumentParser(description='Fetch image URLs from Google Image Search.')
+    #parser.add_argument('--safe', type=str, default="off", help='safe search [off|active|images]')
+    #parser.add_argument('--opts', type=str, default="", help='search options, e.g. isz:lt,islt:svga,itp:photo,ic:color,ift:jpg')
+    #parser.add_argument('n', type=int, default=20, help='number of images (approx)')
+    #parser.add_argument('query', type=str, help='image search query')
+    #parser.add_argument('folder', type=str, help='folder to download images')
+    #args = parser.parse_args()
+    safe="off"
 
     opts = Options()
     opts.add_argument("--headless")
     # opts.add_argument("--blink-settings=imagesEnabled=false")
     with webdriver.Chrome(ChromeDriverManager().install(), options=opts) as wd:
-        sources = google_image_search(wd, args.query, safe=args.safe, n=args.n, opts=args.opts, out=sys.stdout)
+        sources = google_image_search(wd, query, folder, safe=safe, n=n, opts='', out=sys.stdout)
 
-main()
+#main()
