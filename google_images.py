@@ -25,11 +25,15 @@ css_large = "img.n3VNCb"
 css_load_more = ".mye4qd"
 selenium_exceptions = (sel_ex.ElementClickInterceptedException, sel_ex.ElementNotInteractableException, sel_ex.StaleElementReferenceException)
 
+@retry(exceptions=KeyError, tries=6, delay=0.1, backoff=2, logger=retry_logger)
 def download_image(url):
-    response = requests.get(url)
-    filename = "googleImages/" + url.split("/")[-1]
-    with open(filename, "wb") as file:
-        file.write(response.content)
+	try:
+		response = requests.get(url, headers = {"User-Agent" : "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36"})
+		filename = "googleImages/" + url.split("/")[-1]
+		with open(filename, "wb") as file:
+			file.write(response.content)
+	except OSError as exc:
+		print(exc)
 
 def scroll_to_end(wd):
     wd.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -95,6 +99,7 @@ def get_images(wd, start=0, n=20, out=None):
                 sources.append(src)
                 if out:
                     print(src, file=out)
+                    print(len(sources))
                     download_image(src)
                     out.flush()
         if len(sources) >= n:
