@@ -9,25 +9,25 @@ import pathlib
 import requests
 import time
 import tweepy
-import tensorflow
+import tensorflow.compat.v1
 import PIL
 
-from keys import twitter_keys as keys
 import numpy as np
 from PIL import Image
 from read_bird_list import read_scientific_name
 
-CONSUMER_KEY = keys['api_key']
-CONSUMER_KEY_SECRET = keys['api_secret_key']
+CONSUMER_KEY = os.environ['api_key']
+CONSUMER_KEY_SECRET = os.environ['api_secret_key']
 
-ACCESS_TOKEN = keys['access_token']
-ACCESS_TOKEN_SECRET = keys['access_token_secret']
+ACCESS_TOKEN = os.environ['access_token']
+ACCESS_TOKEN_SECRET = os.environ['access_token_secret']
 
 auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_KEY_SECRET)
 auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 
 api = tweepy.API(auth, wait_on_rate_limit=True)
-since_id = 1
+mentions_since_id = 1
+messages_since_id = 1
 
 
 class Model:
@@ -111,9 +111,9 @@ def print_outputs(outputs):
     #print(f"Specie {third_class} ({third_class_scientific_name}) with score of {third_highest}")
 
     if highest_score > 0.5:
-    	return f"{first_class} ({first_class_scientific_name})."
+    	return "{} ({}).".format(first_class, first_class_scientific_name)
     elif highest_score > 0.2:
-    	return f"Podria ser {first_class} ({first_class_scientific_name}) ?"
+    	return "Podria ser {} ({}) ?".format(first_class, first_class_scientific_name)
     else:
     	return "No el puc identificar bé."
 
@@ -132,10 +132,10 @@ def download_image(url):
 
     return filename
 
-def check_mentions(api, since_id):
-    new_since_id = since_id
-    for tweet in tweepy.Cursor(api.mentions_timeline, since_id=since_id).items():
-        new_since_id = max(tweet.id, new_since_id)
+def check_mentions(api, mentions_since_id):
+    new_mentions_since_id = mentions_since_id
+    for tweet in tweepy.Cursor(api.mentions_timeline, since_id=mentions_since_id).items():
+        new_mentions_since_id = max(tweet.id, new_mentions_since_id)
 
         # get all the images for each tweet
         try:
@@ -160,12 +160,28 @@ def check_mentions(api, since_id):
         except Exception as e:
             print(e)
 
-    return new_since_id
+    return new_mentions_since_id
+
+def check_messages(api, messages_since_id):
+	print(messages_since_id)
+	new_messages_since_id = messages_since_id
+
+	for dm in tweepy.Cursor(api.list_direct_messages, since_id=messages_since_id).items():
+		new_messages_since_id = max(dm.id, new_messages_since_id)
+		print(dm)
+		#direct_message_id = int(dm.id)
+
+		#if direct_message_id > new_messages_since_id:
+		#	new_messages_since_id = direct_message_id
+
+	print(new_messages_since_id)
+	return new_messages_since_id
 
 
 model_filepath = pathlib.Path('model/model.pb')
 model = Model(model_filepath)
 
 while True:
-    since_id = check_mentions(api, since_id)
+    mentions_since_id = check_mentions(api, mentions_since_id)
+    #messages_since_id = check_messages(api, messages_since_id)
     time.sleep(5)
