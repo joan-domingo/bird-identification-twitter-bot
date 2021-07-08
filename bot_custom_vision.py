@@ -9,7 +9,7 @@ import pathlib
 import requests
 import time
 import tweepy
-import tensorflow.compat.v1
+import tensorflow
 import PIL
 
 import numpy as np
