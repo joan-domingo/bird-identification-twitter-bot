@@ -86,7 +86,7 @@ def print_outputs(outputs):
     highest_score = np.max(outputs[0])
     first_class = labels[np.argmax(outputs[0])]
     first_class_scientific_name = read_scientific_name(first_class)
-    #print(f"Specie {first_class} ({first_class_scientific_name}) with score of {highest_score}")
+    print(f"Specie {first_class} ({first_class_scientific_name}) with score of {highest_score}")
 
     second_highest = 0
     second_position = -1;
@@ -97,7 +97,7 @@ def print_outputs(outputs):
 
     second_class = labels[second_position]
     second_class_scientific_name = read_scientific_name(second_class)
-    #print(f"Specie {second_class} ({second_class_scientific_name}) with score of {second_highest}")
+    print(f"Specie {second_class} ({second_class_scientific_name}) with score of {second_highest}")
 
     third_highest = 0
     third_position = -1;
@@ -108,7 +108,7 @@ def print_outputs(outputs):
 
     third_class = labels[third_position]
     third_class_scientific_name = read_scientific_name(third_class)
-    #print(f"Specie {third_class} ({third_class_scientific_name}) with score of {third_highest}")
+    print(f"Specie {third_class} ({third_class_scientific_name}) with score of {third_highest}")
 
     if highest_score > 0.5:
     	return "{} ({}).".format(first_class, first_class_scientific_name)
@@ -118,6 +118,7 @@ def print_outputs(outputs):
     	return "No el puc identificar bé."
 
 def process_image(filename, i):
+    print("Processing image " + filename)
     image_path = pathlib.Path(filename)
 
     outputs = model.predict(image_path)
@@ -137,6 +138,7 @@ def check_mentions(api, mentions_since_id):
     for tweet in tweepy.Cursor(api.mentions_timeline, since_id=mentions_since_id).items():
         new_mentions_since_id = max(tweet.id, new_mentions_since_id)
 
+        print(tweet)
         # get all the images for each tweet
         try:
             images = tweet.extended_entities['media']
@@ -180,6 +182,7 @@ def check_messages(api, messages_since_id):
 
 model_filepath = pathlib.Path('model/model.pb')
 model = Model(model_filepath)
+print("model loaded, script up and running...")
 
 while True:
     mentions_since_id = check_mentions(api, mentions_since_id)
