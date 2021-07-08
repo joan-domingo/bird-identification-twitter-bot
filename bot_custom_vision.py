@@ -1,12 +1,33 @@
-import argparse
+#!/usr/bin/env python
+
+# Twitter Bot: Responding Bot
+
+# This bot listens to the account @QuinOcellEs.
+
+import os
 import pathlib
-import numpy as np
+import requests
+import time
+import tweepy
 import tensorflow
-import PIL.Image
+import PIL
+
+from keys import twitter_keys as keys
+import numpy as np
+from PIL import Image
 from read_bird_list import read_scientific_name
 
+CONSUMER_KEY = keys['api_key']
+CONSUMER_KEY_SECRET = keys['api_secret_key']
 
-# run file with: python predict.py <model_path> <test_image_path>
+ACCESS_TOKEN = keys['access_token']
+ACCESS_TOKEN_SECRET = keys['access_token_secret']
+
+auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_KEY_SECRET)
+auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+api = tweepy.API(auth, wait_on_rate_limit=True)
+since_id = 1
 
 
 class Model:
@@ -57,10 +78,6 @@ class Model:
 def print_outputs(outputs):
     outputs = list(outputs.values())[0]
 
-    #for index, score in enumerate(outputs[0]):
-    #    print(f"Label: {index}, score: {score:.5f}")
-
-
     labels = []
     labels_file = open('model/labels.txt', 'r')
     for label in labels_file.readlines():
@@ -69,8 +86,7 @@ def print_outputs(outputs):
     highest_score = np.max(outputs[0])
     first_class = labels[np.argmax(outputs[0])]
     first_class_scientific_name = read_scientific_name(first_class)
-    print(f"Specie {first_class} ({first_class_scientific_name}) with score of {highest_score}")
-
+    #print(f"Specie {first_class} ({first_class_scientific_name}) with score of {highest_score}")
 
     second_highest = 0
     second_position = -1;
@@ -81,7 +97,7 @@ def print_outputs(outputs):
 
     second_class = labels[second_position]
     second_class_scientific_name = read_scientific_name(second_class)
-    print(f"Specie {second_class} ({second_class_scientific_name}) with score of {second_highest}")
+    #print(f"Specie {second_class} ({second_class_scientific_name}) with score of {second_highest}")
 
     third_highest = 0
     third_position = -1;
@@ -92,20 +108,64 @@ def print_outputs(outputs):
 
     third_class = labels[third_position]
     third_class_scientific_name = read_scientific_name(third_class)
-    print(f"Specie {third_class} ({third_class_scientific_name}) with score of {third_highest}")
+    #print(f"Specie {third_class} ({third_class_scientific_name}) with score of {third_highest}")
+
+    if highest_score > 0.5:
+    	return f"{first_class} ({first_class_scientific_name})."
+    elif highest_score > 0.2:
+    	return f"Podria ser {first_class} ({first_class_scientific_name}) ?"
+    else:
+    	return "No el puc identificar bé."
+
+def process_image(filename, i):
+    image_path = pathlib.Path(filename)
+
+    outputs = model.predict(image_path)
+    
+    return print_outputs(outputs)
+
+def download_image(url):
+    response = requests.get(url)
+    filename = url.split("/")[-1]
+    with open(filename, "wb") as file:
+        file.write(response.content)
+
+    return filename
+
+def check_mentions(api, since_id):
+    new_since_id = since_id
+    for tweet in tweepy.Cursor(api.mentions_timeline, since_id=since_id).items():
+        new_since_id = max(tweet.id, new_since_id)
+
+        # get all the images for each tweet
+        try:
+            images = tweet.extended_entities['media']
+
+            reply_message = "@" + tweet.user.screen_name
+            
+            for i, img in enumerate(images, start = 1):
+                # Download image
+                filename = download_image(img['media_url'])
+
+                # Process image
+                prediction_message = process_image(filename, i)
+                reply_message = reply_message + "\n" + str(i) + ". " + prediction_message
+
+                # Delete downloaded image
+                os.remove(filename)
+
+            # Reply
+            #print(reply_message)
+            api.update_status(reply_message, tweet.id)
+        except Exception as e:
+            print(e)
+
+    return new_since_id
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('model_filepath', type=pathlib.Path)
-    parser.add_argument('image_filepath', type=pathlib.Path)
+model_filepath = pathlib.Path('model/model.pb')
+model = Model(model_filepath)
 
-    args = parser.parse_args()
-
-    model = Model(args.model_filepath)
-    outputs = model.predict(args.image_filepath)
-    print_outputs(outputs)
-
-
-if __name__ == '__main__':
-    main()
+while True:
+    since_id = check_mentions(api, since_id)
+    time.sleep(5)
