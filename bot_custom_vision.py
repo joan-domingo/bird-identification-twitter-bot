@@ -176,7 +176,7 @@ while True:
     mentions_since_id = check_mentions(api, mentions_since_id)
 
     with open('mentions_since.txt', 'w') as f:
-        print('updating mentions_since_id... : ' + str(mentions_since_id)
+        print('updating mentions_since_id... : ' + str(mentions_since_id))
         f.write(str(mentions_since_id))
 
     time.sleep(5)
