@@ -19,7 +19,7 @@ from read_bird_list import read_scientific_name
 mentions_since_id = 0
 
 with open('mentions_since.txt', 'r') as f:
-    mentions_since_id = f.readlines()[0].strip()
+    mentions_since_id = int(f.readlines()[0].strip())
 
 CONSUMER_KEY = os.environ['api_key']
 CONSUMER_KEY_SECRET = os.environ['api_secret_key']
@@ -177,6 +177,6 @@ while True:
 
     with open('mentions_since.txt', 'w') as f:
         print('updating mentions_since_id... : ' + mentions_since_id)
-        f.write(mentions_since_id)
+        f.write(str(mentions_since_id))
 
     time.sleep(5)
