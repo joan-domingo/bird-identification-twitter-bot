@@ -16,6 +16,11 @@ import numpy as np
 from PIL import Image
 from read_bird_list import read_scientific_name
 
+mentions_since_id = 0
+
+with open('mentions_since.txt', 'r') as f:
+    mentions_since_id = f.readlines()[0].strip()
+
 CONSUMER_KEY = os.environ['api_key']
 CONSUMER_KEY_SECRET = os.environ['api_secret_key']
 
@@ -26,8 +31,6 @@ auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_KEY_SECRET)
 auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 
 api = tweepy.API(auth, wait_on_rate_limit=True)
-mentions_since_id = 1
-messages_since_id = 1
 
 
 class Model:
@@ -164,21 +167,6 @@ def check_mentions(api, mentions_since_id):
 
     return new_mentions_since_id
 
-def check_messages(api, messages_since_id):
-	print(messages_since_id)
-	new_messages_since_id = messages_since_id
-
-	for dm in tweepy.Cursor(api.list_direct_messages, since_id=messages_since_id).items():
-		new_messages_since_id = max(dm.id, new_messages_since_id)
-		print(dm)
-		#direct_message_id = int(dm.id)
-
-		#if direct_message_id > new_messages_since_id:
-		#	new_messages_since_id = direct_message_id
-
-	print(new_messages_since_id)
-	return new_messages_since_id
-
 
 model_filepath = pathlib.Path('model/model.pb')
 model = Model(model_filepath)
@@ -186,5 +174,9 @@ print("model loaded, script up and running...")
 
 while True:
     mentions_since_id = check_mentions(api, mentions_since_id)
-    #messages_since_id = check_messages(api, messages_since_id)
+
+    with open('mentions_since.txt', 'w') as f:
+        print('updating mentions_since_id... : ' + mentions_since_id)
+        f.write(mentions_since_id)
+
     time.sleep(5)
