@@ -173,10 +173,11 @@ model = Model(model_filepath)
 print("model loaded, script up and running...")
 
 while True:
-    mentions_since_id = check_mentions(api, mentions_since_id)
+    new_mentions_since_id = check_mentions(api, mentions_since_id)
 
-    with open('mentions_since.txt', 'w') as f:
-        print('updating mentions_since_id... : ' + str(mentions_since_id))
-        f.write(str(mentions_since_id))
+    if new_mentions_since_id > mentions_since_id:
+        with open('mentions_since.txt', 'w') as f:
+            print('updating mentions_since_id... : ' + str(mentions_since_id))
+            f.write(str(mentions_since_id))
 
     time.sleep(5)
