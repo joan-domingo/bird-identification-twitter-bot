@@ -17,6 +17,7 @@ import numpy as np
 from database import init_db, read_mention_id_value, write_mention_id_value
 from PIL import Image
 from read_bird_list import read_scientific_name
+import urllib.parse as urlparse
 
 url = urlparse.urlparse(os.environ['DATABASE_URL'])
 dbname = url.path[1:]
