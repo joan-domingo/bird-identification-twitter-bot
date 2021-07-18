@@ -11,15 +11,26 @@ import time
 import tweepy
 import tensorflow
 import PIL
+import psycopg2
 
 import numpy as np
+from database import init_db, read_mention_id_value, write_mention_id_value
 from PIL import Image
 from read_bird_list import read_scientific_name
 
-mentions_since_id = 0
+url = urlparse.urlparse(os.environ['DATABASE_URL'])
+dbname = url.path[1:]
+user = url.username
+password = url.password
+host = url.hostname
+port = url.port
 
-with open('mentions_since.txt', 'r') as f:
-    mentions_since_id = int(f.readlines()[0].strip())
+conn = psycopg2.connect(database = dbname, user = user, password = password, host = host, port = port)
+print("Opened database successfully")
+
+init_db(conn)
+
+mentions_since_id = read_mention_id_value(conn)
 
 CONSUMER_KEY = os.environ['api_key']
 CONSUMER_KEY_SECRET = os.environ['api_secret_key']
@@ -89,7 +100,7 @@ def print_outputs(outputs):
     highest_score = np.max(outputs[0])
     first_class = labels[np.argmax(outputs[0])]
     first_class_scientific_name = read_scientific_name(first_class)
-    print(f"Specie {first_class} ({first_class_scientific_name}) with score of {highest_score}")
+    #print(f"Specie {first_class} ({first_class_scientific_name}) with score of {highest_score}")
 
     second_highest = 0
     second_position = -1
@@ -100,7 +111,7 @@ def print_outputs(outputs):
 
     second_class = labels[second_position]
     second_class_scientific_name = read_scientific_name(second_class)
-    print(f"Specie {second_class} ({second_class_scientific_name}) with score of {second_highest}")
+    #print(f"Specie {second_class} ({second_class_scientific_name}) with score of {second_highest}")
 
     third_highest = 0
     third_position = -1
@@ -111,7 +122,7 @@ def print_outputs(outputs):
 
     third_class = labels[third_position]
     third_class_scientific_name = read_scientific_name(third_class)
-    print(f"Specie {third_class} ({third_class_scientific_name}) with score of {third_highest}")
+    #print(f"Specie {third_class} ({third_class_scientific_name}) with score of {third_highest}")
 
     if highest_score > 0.5:
         return "{} ({}).".format(first_class, first_class_scientific_name)
@@ -160,7 +171,7 @@ def check_mentions(api, mentions_since_id):
                 os.remove(filename)
 
             # Reply
-            #print(reply_message)
+            print(reply_message)
             api.update_status(reply_message, tweet.id)
         except Exception as e:
             print(e)
@@ -173,11 +184,16 @@ model = Model(model_filepath)
 print("model loaded, script up and running...")
 
 while True:
-    new_mentions_since_id = check_mentions(api, mentions_since_id)
+    try:
+        new_mentions_since_id = check_mentions(api, mentions_since_id)
 
-    if new_mentions_since_id > mentions_since_id:
-        with open('mentions_since.txt', 'w') as f:
-            print('updating mentions_since_id... : ' + str(new_mentions_since_id))
-            f.write(str(new_mentions_since_id))
+        if new_mentions_since_id > mentions_since_id:
+            write_mention_id_value(conn, new_mentions_since_id)
+            mentions_since_id = new_mentions_since_id
 
-    time.sleep(5)
+        time.sleep(5)
+
+    except Exception as e:
+        print(e)
+        conn.close()
+

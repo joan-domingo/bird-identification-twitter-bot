@@ -1,6 +1,7 @@
 numpy==1.19.5
+pathlib
 Pillow==8.2.0
+psycopg2
+requests
 tensorflow-cpu==2.5.0
 tweepy==3.10.0
-pathlib
-requests
