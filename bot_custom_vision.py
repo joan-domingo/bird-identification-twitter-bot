@@ -92,7 +92,7 @@ def print_outputs(outputs):
     print(f"Specie {first_class} ({first_class_scientific_name}) with score of {highest_score}")
 
     second_highest = 0
-    second_position = -1;
+    second_position = -1
     for i, score in enumerate(outputs[0]):
         if score > second_highest and score < highest_score:
             second_highest = score
@@ -103,7 +103,7 @@ def print_outputs(outputs):
     print(f"Specie {second_class} ({second_class_scientific_name}) with score of {second_highest}")
 
     third_highest = 0
-    third_position = -1;
+    third_position = -1
     for i, score in enumerate(outputs[0]):
         if score > third_highest and score < second_highest:
             third_highest = score
@@ -114,13 +114,13 @@ def print_outputs(outputs):
     print(f"Specie {third_class} ({third_class_scientific_name}) with score of {third_highest}")
 
     if highest_score > 0.5:
-    	return "{} ({}).".format(first_class, first_class_scientific_name)
+        return "{} ({}).".format(first_class, first_class_scientific_name)
     elif highest_score > 0.2:
-    	return "Podria ser {} ({}) ?".format(first_class, first_class_scientific_name)
+        return "Podria ser {} ({}) ?".format(first_class, first_class_scientific_name)
     else:
-    	return "No el puc identificar bé."
+        return "No el puc identificar bé."
 
-def process_image(filename, i):
+def process_image(filename):
     print("Processing image " + filename)
     image_path = pathlib.Path(filename)
 
@@ -141,7 +141,7 @@ def check_mentions(api, mentions_since_id):
     for tweet in tweepy.Cursor(api.mentions_timeline, since_id=mentions_since_id).items():
         new_mentions_since_id = max(tweet.id, new_mentions_since_id)
 
-        print(tweet)
+        #print(tweet)
         # get all the images for each tweet
         try:
             images = tweet.extended_entities['media']
@@ -153,7 +153,7 @@ def check_mentions(api, mentions_since_id):
                 filename = download_image(img['media_url'])
 
                 # Process image
-                prediction_message = process_image(filename, i)
+                prediction_message = process_image(filename)
                 reply_message = reply_message + "\n" + str(i) + ". " + prediction_message
 
                 # Delete downloaded image
@@ -177,7 +177,7 @@ while True:
 
     if new_mentions_since_id > mentions_since_id:
         with open('mentions_since.txt', 'w') as f:
-            print('updating mentions_since_id... : ' + str(mentions_since_id))
-            f.write(str(mentions_since_id))
+            print('updating mentions_since_id... : ' + str(new_mentions_since_id))
+            f.write(str(new_mentions_since_id))
 
     time.sleep(5)
